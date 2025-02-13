@@ -50,7 +50,7 @@ public:
   //  Throws exception if multiset is empty
   const K &Min();
 
-  Multiset() : root_(nullptr), size_(0) {}
+  Multiset() : root(nullptr), size(0) {}
   ~Multiset() = default;
 
 private:
@@ -78,26 +78,19 @@ private:
   std::unique_ptr<Node> root;
   size_t size;
 
-  void Insert(std::unique_ptr<Node> &node, const K &key)
-  {
-    if (!node)
-    {
-      node = std::make_unique<Node>(key);
-    }
-    else if (key < node->key)
-    {
-      Insert(node->left, key);
-    }
-    else if (node->key < key)
-    {
-      Insert(node->right, key);
-    }
-    else
-    {
-      node->count++;
-    }
+  void Insert(std::unique_ptr<Node>& node, const K& key) {
+      if (!node) {
+          
+          node.reset(new Node(key));
+      } else if (key < node->key) {
+          Insert(node->left, key);
+      } else if (node->key < key) {
+          Insert(node->right, key);
+      } else {
+          
+          node->count++;
+      }
   }
-
   Node *Find(const std::unique_ptr<Node> &node, const K &key) const
   {
     if (!node)
@@ -190,38 +183,38 @@ private:
 
 template <typename K>
 size_t Multiset<K>::Size() {
-    return size_;
+    return size;
 }
 
 template <typename K>
 bool Multiset<K>::Empty() {
-    return size_ == 0;
+    return size == 0;
 }
 
 template <typename K>
 void Multiset<K>::Insert(const K &key) {
-    Insert(root_, key);
-    size_++;
+    Insert(root, key);
+    size++;
 }
 
 template <typename K>
 void Multiset<K>::Remove(const K &key) {
     bool found = false;
-    Remove(root_, key, found);
+    Remove(root, key, found);
     if (!found) {
         throw std::runtime_error("Invalid key");
     }
-    size_--;
+    size--;
 }
 
 template <typename K>
 bool Multiset<K>::Contains(const K& key) {
-    return Find(root_, key) != nullptr;
+    return Find(root, key) != nullptr;
 }
 
 template <typename K>
 size_t Multiset<K>::Count(const K& key) {
-    Node* node = Find(root_, key);
+    Node* node = Find(root, key);
     if (!node) {
         throw std::runtime_error("Invalid key");
     }
@@ -233,7 +226,7 @@ const K& Multiset<K>::Floor(const K &key) {
     if (Empty()) {
         throw std::runtime_error("Empty multiset");
     }
-    Node* candidate = Floor(root_.get(), key);
+    Node* candidate = Floor(root.get(), key);
     if (!candidate || candidate->key > key) {
         throw std::runtime_error("Invalid key");
     }
@@ -245,7 +238,7 @@ const K& Multiset<K>::Ceil(const K &key) {
     if (Empty()) {
         throw std::runtime_error("Empty multiset");
     }
-    Node* candidate = Ceil(root_.get(), key);
+    Node* candidate = Ceil(root.get(), key);
     if (!candidate || candidate->key < key) {
         throw std::runtime_error("Invalid key");
     }
@@ -257,7 +250,7 @@ const K& Multiset<K>::Max() {
     if (Empty()) {
         throw std::runtime_error("Empty multiset");
     }
-    Node* maxNode = FindMax(root_.get());
+    Node* maxNode = FindMax(root.get());
     return maxNode->key;
 }
 
@@ -266,7 +259,7 @@ const K& Multiset<K>::Min() {
     if (Empty()) {
         throw std::runtime_error("Empty multiset");
     }
-    Node* minNode = FindMin(root_.get());
+    Node* minNode = FindMin(root.get());
     return minNode->key;
 }
 
