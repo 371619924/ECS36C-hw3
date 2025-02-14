@@ -1,106 +1,28 @@
 #include <iostream>
-#include <vector>
 #include <string>
-#include <cstdlib>
 #include <stdexcept>
-#include <algorithm>
+#include <cstdlib>
+#include "multiset.h"
 
-class MyMultiset
-{
-public:
-    using Element = std::pair<unsigned int, unsigned int>;
-
-    void insert(unsigned int x)
-    {
-        auto it = std::lower_bound(data.begin(), data.end(), x,
-                                   [](const Element &elem, unsigned int value)
-                                   {
-                                       return elem.first < value;
-                                   });
-        if (it != data.end() && it->first == x)
-        {
-            it->second++;
-        }
-        else
-        {
-            data.insert(it, Element(x, 1));
-        }
-    }
-
-    std::vector<Element>::iterator begin() { return data.begin(); }
-    std::vector<Element>::iterator end() { return data.end(); }
-    std::vector<Element>::const_iterator begin() const { return data.begin(); }
-    std::vector<Element>::const_iterator end() const { return data.end(); }
-
-    bool empty() const { return data.empty(); }
-
-    size_t size() const { return data.size(); }
-
-    Element min() const { return data.front(); }
-
-    Element max() const { return data.back(); }
-
-    std::vector<Element>::iterator find(unsigned int x)
-    {
-        auto it = std::lower_bound(data.begin(), data.end(), x,
-                                   [](const Element &elem, unsigned int value)
-                                   {
-                                       return elem.first < value;
-                                   });
-        if (it != data.end() && it->first == x)
-            return it;
-        return data.end();
-    }
-
-    std::vector<Element>::iterator lower_bound_gt(unsigned int x)
-    {
-
-        return std::upper_bound(data.begin(), data.end(), x,
-                                [](unsigned int value, const Element &elem)
-                                {
-                                    return value < elem.first;
-                                });
-    }
-
-    std::vector<Element>::iterator upper_bound_lt(unsigned int x)
-    {
-        auto it = std::lower_bound(data.begin(), data.end(), x,
-                                   [](const Element &elem, unsigned int value)
-                                   {
-                                       return elem.first < value;
-                                   });
-        if (it == data.begin())
-            return data.end();
-        --it;
-        return it;
-    }
-
-private:
-    std::vector<Element> data;
-};
-
-bool factorize(unsigned int n, MyMultiset &factors)
+bool factorize(unsigned int n, Multiset<unsigned int> &factors)
 {
     unsigned int original = n;
-
     for (unsigned int d = 2; d * d <= n; d++)
     {
         while (n % d == 0)
         {
-            factors.insert(d);
+            factors.Insert(d);
             n /= d;
         }
     }
-
     if (n > 1)
     {
-        factors.insert(n);
+        factors.Insert(n);
     }
 
-    if (factors.size() == 1 && factors.begin()->first == original)
+    if (!factors.Empty() && factors.Min() == original)
         return false;
-
-    return !factors.empty();
+    return !factors.Empty();
 }
 
 int main(int argc, char *argv[])
@@ -115,7 +37,6 @@ int main(int argc, char *argv[])
     unsigned int number = 0;
     try
     {
-
         number = std::stoul(argv[1]);
     }
     catch (const std::exception &)
@@ -125,7 +46,6 @@ int main(int argc, char *argv[])
     }
 
     std::string command(argv[2]);
-
     if (command != "all" && command != "min" && command != "max" && command != "near")
     {
         std::cerr << "Command '" << command << "' is invalid" << std::endl;
@@ -144,43 +64,49 @@ int main(int argc, char *argv[])
         nearArg = argv[3];
     }
 
-    MyMultiset factors;
-    bool hasProperFactors = factorize(number, factors);
-
-    if (!hasProperFactors)
+    Multiset<unsigned int> factors;
+    bool hasFactors = factorize(number, factors);
+    if (!hasFactors)
     {
         std::cout << "No prime factors" << std::endl;
         return 0;
     }
-
     if (command == "all")
     {
 
-        for (const auto &elem : factors)
+        try
         {
-            std::cout << elem.first << " (x" << elem.second << "), ";
+            unsigned int key = factors.Min();
+            while (true)
+            {
+                std::cout << key << " (x" << factors.Count(key) << "), ";
+
+                key = factors.Ceil(key + 1);
+            }
         }
-        std::cout << std::endl;
+        catch (std::runtime_error &e)
+        {
+            std::cout << std::endl;
+        }
     }
     else if (command == "min")
     {
-        auto elem = factors.min();
-        std::cout << elem.first << " (x" << elem.second << ")" << std::endl;
+        unsigned int key = factors.Min();
+        std::cout << key << " (x" << factors.Count(key) << ")" << std::endl;
     }
     else if (command == "max")
     {
-        auto elem = factors.max();
-        std::cout << elem.first << " (x" << elem.second << ")" << std::endl;
+        unsigned int key = factors.Max();
+        std::cout << key << " (x" << factors.Count(key) << ")" << std::endl;
     }
     else if (command == "near")
     {
-
-        int target = 0;
+        int target;
         bool findGreater = false, findSmaller = false;
-        std::string numStr = nearArg;
-        if (!numStr.empty() && (numStr[0] == '+' || numStr[0] == '-'))
+        std::string arg = nearArg;
+        if (!arg.empty() && (arg[0] == '+' || arg[0] == '-'))
         {
-            if (numStr[0] == '+')
+            if (arg[0] == '+')
             {
                 findGreater = true;
             }
@@ -188,12 +114,11 @@ int main(int argc, char *argv[])
             {
                 findSmaller = true;
             }
-
-            numStr = numStr.substr(1);
+            arg = arg.substr(1);
         }
         try
         {
-            target = std::stoi(numStr);
+            target = std::stoi(arg);
         }
         catch (const std::exception &)
         {
@@ -201,27 +126,58 @@ int main(int argc, char *argv[])
             return 1;
         }
 
-        std::vector<MyMultiset::Element>::iterator it;
-        if (findGreater)
-        {
-            it = factors.lower_bound_gt(static_cast<unsigned int>(target));
-        }
-        else if (findSmaller)
-        {
-            it = factors.upper_bound_lt(static_cast<unsigned int>(target));
-        }
-        else
-        {
-
-            it = factors.find(static_cast<unsigned int>(target));
-        }
-        if (it != factors.end())
-        {
-            std::cout << it->first << " (x" << it->second << ")" << std::endl;
-        }
-        else
+        if (target <= 0)
         {
             std::cout << "No match" << std::endl;
+        }
+        else
+        {
+            unsigned int utarget = static_cast<unsigned int>(target);
+            if (findGreater)
+            {
+
+                try
+                {
+                    unsigned int candidate = factors.Ceil(utarget + 1);
+                    std::cout << candidate << " (x" << factors.Count(candidate) << ")" << std::endl;
+                }
+                catch (std::runtime_error &e)
+                {
+                    std::cout << "No match" << std::endl;
+                }
+            }
+            else if (findSmaller)
+            {
+
+                if (factors.Min() >= utarget)
+                {
+                    std::cout << "No match" << std::endl;
+                }
+                else
+                {
+                    try
+                    {
+
+                        unsigned int candidate = factors.Floor(utarget - 1);
+                        std::cout << candidate << " (x" << factors.Count(candidate) << ")" << std::endl;
+                    }
+                    catch (std::runtime_error &e)
+                    {
+                        std::cout << "No match" << std::endl;
+                    }
+                }
+            }
+            else
+            {
+                if (factors.Contains(utarget))
+                {
+                    std::cout << utarget << " (x" << factors.Count(utarget) << ")" << std::endl;
+                }
+                else
+                {
+                    std::cout << "No match" << std::endl;
+                }
+            }
         }
     }
 
