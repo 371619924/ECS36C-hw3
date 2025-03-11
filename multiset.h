@@ -208,6 +208,20 @@ private:
 
 // ---------------- Implementation of Public Methods ----------------
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // Returns the total number of items (including duplicates) in the multiset.
 template <typename K>
 size_t Multiset<K>::Size() {
